@@ -161,7 +161,7 @@ def main():
 
 
     #json.dump(jsons, open('jsons.json', 'w'))
-    #json.dump(subgraphs, open('subgraphs.json', 'w'))
+    json.dump(subgraphs, open('subgraphs.json', 'w'))
     #json.dump(lengths, open('lengths.json', 'w'))
 
 

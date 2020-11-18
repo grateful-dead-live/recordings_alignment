@@ -153,17 +153,19 @@ def get_lengths(jsons, id, dirsdict):
 def prepare_data(date):
     print('analysing graph')
     #g = read_dot(os.path.join(FOLDER+date, date+'.dot'))
-    g = read_dot(date+'.dot')
+    #g = read_dot(date+'.dot')
+    #pickle.dump(g, open('g.pickle', 'wb'))
+    g = pickle.load(open('g.pickle', 'rb'))
     subs = sub_graphs(g)
-
-
+    
+    
     ids_by_number_of_matched_files = rank_ids_amount(subs)
-    dirsdict = getDirsDict()
-    jsons = loadJson(date)
-    #jsons = pickle.load(open('jsons.pickle', 'rb'))
-    pickle.dump(jsons, open('jsons.pickle', 'wb'))
+    #dirsdict = getDirsDict()
+    #jsons = loadJson(date)
+    jsons = pickle.load(open('jsons.pickle', 'rb'))
+    #pickle.dump(jsons, open('jsons.pickle', 'wb'))
     #json.dump(jsons, open('jsons.json', 'w'))
-    jsons = json.load(open('jsons.json'))
+    #jsons = json.load(open('jsons.json'))
 
     #lengths = {}
     #for i in get_all_ids(g):
