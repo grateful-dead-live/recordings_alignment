@@ -5,6 +5,7 @@ from pprint import pprint
 from scipy import stats
 import numpy as np
 from copy import copy
+from pprint import pprint
 
 
 DATE = '90-03-14'
@@ -142,11 +143,7 @@ def fill_gaps(json_key, segs, jsons, lengths):
     segs += [([last_seg_0, last_seg_1], [l_0, l_1])]
 
 
-
-
-
-
-    print(segs)
+    pprint(segs)
 
 def main():
 
@@ -177,10 +174,10 @@ def main():
             #print(tuning_diff)
             file_names = jkeys[0].split('__')
             partitions = get_partition_bounds(dtw)
-            print(partitions)
+            #pprint(partitions)
             #break
 
-            #fill_gaps(jkeys[0], partitions, jsons, lengths)
+            fill_gaps(jkeys[0], partitions, jsons, lengths)
             #2**(tuning_diff / 1200)
             #break
 

@@ -20,7 +20,7 @@ def etreeNumber(e):
             except: pass
 
 
-# dct to find folders of recordings to get lengths of unmatched files
+# dict to find folders of recordings to get lengths of unmatched files
 def getDirsDict():
     if os.path.exists('dirdict.json'):
         return json.load(open('dirdict.json'))
@@ -152,26 +152,26 @@ def get_lengths(jsons, id, dirsdict):
 
 def prepare_data(date):
     print('analysing graph')
-    #g = read_dot(os.path.join(FOLDER+date, date+'.dot'))
+    g = read_dot(os.path.join(FOLDER+date, date+'.dot'))
     #g = read_dot(date+'.dot')
     #pickle.dump(g, open('g.pickle', 'wb'))
-    g = pickle.load(open('g.pickle', 'rb'))
+    #g = pickle.load(open('g.pickle', 'rb'))
     subs = sub_graphs(g)
     
     
     ids_by_number_of_matched_files = rank_ids_amount(subs)
-    #dirsdict = getDirsDict()
-    #jsons = loadJson(date)
-    jsons = pickle.load(open('jsons.pickle', 'rb'))
+    dirsdict = getDirsDict()
+    jsons = loadJson(date)
+    #jsons = pickle.load(open('jsons.pickle', 'rb'))
     #pickle.dump(jsons, open('jsons.pickle', 'wb'))
     #json.dump(jsons, open('jsons.json', 'w'))
     #jsons = json.load(open('jsons.json'))
 
-    #lengths = {}
-    #for i in get_all_ids(g):
-    #    lengths[i] = get_lengths(jsons, i, dirsdict)
+    lengths = {}
+    for i in get_all_ids(g):
+        lengths[i] = get_lengths(jsons, i, dirsdict)
     #json.dump(lengths, open('lengths.json', 'w'))
-    lengths = json.load(open('lengths.json'))
+    #lengths = json.load(open('lengths.json'))
     ids_by_length = rank_ids_length(lengths)
 
     # add unmatched to subgraph:
