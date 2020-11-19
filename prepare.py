@@ -170,7 +170,7 @@ def prepare_data(date):
     lengths = {}
     for i in get_all_ids(g):
         lengths[i] = get_lengths(jsons, i, dirsdict)
-    #json.dump(lengths, open('lengths.json', 'w'))
+    json.dump(lengths, open('lengths.json', 'w'))
     #lengths = json.load(open('lengths.json'))
     ids_by_length = rank_ids_length(lengths)
 

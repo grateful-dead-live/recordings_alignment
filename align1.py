@@ -6,6 +6,8 @@ from scipy import stats
 import numpy as np
 from copy import copy
 from pprint import pprint
+from scipy import stats
+import matplotlib.pyplot as plt
 
 
 DATE = '90-03-14'
@@ -120,19 +122,51 @@ def file_length(f, lengths):
 def adjust_length(length, cents):
     return length / (2**(cents / 1200))
 
+def plotFigure(segs):
+    p = plt.figure()
+    for s in segs:
+        #print(s[0], s[1])
+        try:
+            if s[2]:
+                colour = 'r'
+        except:
+            colour = 'b'
+        plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color=colour)
+        #break
+    plt.tight_layout()
+    p.savefig('test.png', bbox_inches='tight')
+    plt.close(p)
+
 
 def fill_gaps(json_key, segs, jsons, lengths):
     tuning_diff = jsons[json_key]['tuning_diff']
+    print(segs)
+    new_segs = copy(segs)
+    for n, s in enumerate(segs):
+        if n == 0:
+            start = 0
+        else:
+            start = segs[n-1][1][0]
+        end = s[0][0]
+        pre_seg = [([start, s[0][1]-adjust_length(end-start, tuning_diff)], [s[0][0], s[0][1]], 'add')]
+        new_segs = pre_seg + new_segs
+        print(n, pre_seg)
 
-    # interpolate gapless
-    for i in range(len(segs)-1, 0, -1):
-        segs.insert(i, (segs[i-1][1], segs[i][0]))
+        if n == len(segs)-1:
+            fname_0 = json_key.split('__')[0]
+            l_0 = file_length(fname_0, lengths)
+            app_seg = [([s[1][0], s[1][1]],  [l_0, s[1][1]+adjust_length(l_0-s[1][0], tuning_diff)], 'add' )]
+            new_segs = app_seg + new_segs
+            print(n, app_seg)
+    return new_segs
 
+    '''
     # prepend
     first_seg_0 = segs[0][0][0]
     first_seg_1 = segs[0][0][1]
     prepended_1 = first_seg_1 - adjust_length(first_seg_0, tuning_diff)
     segs = [([0, first_seg_0], [prepended_1, first_seg_1])] + segs
+
 
     # append
     fname_0 = json_key.split('__')[0]
@@ -142,12 +176,31 @@ def fill_gaps(json_key, segs, jsons, lengths):
     l_1 = last_seg_1+adjust_length(l_0-last_seg_0, tuning_diff)
     segs += [([last_seg_0, last_seg_1], [l_0, l_1])]
 
+    return segs
+    #pprint(segs)
+    '''
 
-    pprint(segs)
+def linReg(partitions):
+    print(partitions)
+    p = [[i for i in j] for j in partitions[0]]
+
+    init_slope, intercept, init_r_value, p_value, std_err = stats.linregress(np.swapaxes(p[0],0,1))
+    print('first', init_slope, init_r_value**2)
+
+    for n, i in enumerate(p[:-1]):
+        q = np.swapaxes(np.vstack(p[n:n+2]),0,1)
+        slope, intercept, r_value, p_value, std_err = stats.linregress(q)
+        #print(q)
+        print(n, slope, r_value**2)
+
+    #test: 2nd segment with 10s jump:
+    q[1][2:] += 10
+    slope, intercept, r_value, p_value, std_err = stats.linregress(q)
+    #print(q)
+    print('test', slope, r_value**2)
+
 
 def main():
-
-
 
     subgraphs, ids_by_length, ids_by_number_of_matched_files, lengths, jsons = prepare_data(DATE)
     subgraphs = sort_subgraphs(subgraphs, lengths, ids_by_length)
@@ -161,7 +214,7 @@ def main():
     json.dump(subgraphs, open('subgraphs.json', 'w'))
     #json.dump(lengths, open('lengths.json', 'w'))
 
-
+    all_partitions = []
     for n, sub in enumerate(subgraphs[1:]):
         for s in list(sub.values())[0]:
             if len(s) > 1:
@@ -174,15 +227,17 @@ def main():
             #print(tuning_diff)
             file_names = jkeys[0].split('__')
             partitions = get_partition_bounds(dtw)
-            #pprint(partitions)
-            #break
-
-            fill_gaps(jkeys[0], partitions, jsons, lengths)
+            #all_partitions.append(partitions)
+            all_partitions.append(fill_gaps(jkeys[0], partitions, jsons, lengths))
             #2**(tuning_diff / 1200)
-            #break
-
+            break
+            
+        #all_partitions = linReg(all_partitions)
+        plotFigure(all_partitions[0])
         break
-
+    
+    with open('partitions.txt', 'w') as sfile:
+        pprint(all_partitions, sfile)
     #d = find_dupes(subgraphs)
     #pprint('dupes:', d)
 
