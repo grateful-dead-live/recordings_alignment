@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 
 DATE = '90-03-14'
+#DATE = '90-07-06'
 MIN_R = 0.9999
 
 flatten = lambda l: [item for sublist in l for item in sublist]
@@ -109,7 +110,7 @@ def partition(segs):
 def get_partition_bounds(points):
     parts = partition(split_segments2(points))[0]
     print('split into', len(parts))
-    part_bounds = [(p[0], p[-1]) for p in parts]
+    part_bounds = [[p[0], p[-1]] for p in parts]
     return part_bounds
 
 
@@ -122,24 +123,35 @@ def file_length(f, lengths):
 def adjust_length(length, cents):
     return length / (2**(cents / 1200))
 
-def plotFigure(segs):
+def plotFigure(segs, json_key, lengths):
+    
     p = plt.figure()
     for s in segs:
         #print(s[0], s[1])
         try:
-            if s[2]:
-                colour = 'r'
+            colour = s[2]
+            '''
+            # adjust to avoid overlap
+            fname_0 = json_key.split('__')[0]
+            l_0 = file_length(fname_0, lengths)
+            f = l_0 / 350
+            s[1][0] -= f  
+            s[1][1] -= f
+            s[0][0] += f  
+            s[0][1] += f
+            '''
         except:
             colour = 'b'
-        plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color=colour)
+        plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color=colour, alpha=0.5)
         #break
     plt.tight_layout()
-    p.savefig('test.png', bbox_inches='tight')
+    p.savefig('plots/'+json_key+'.pdf', bbox_inches='tight')
     plt.close(p)
 
 
+
 def fill_gaps(json_key, segs, jsons, lengths):
-    tuning_diff = jsons[json_key]['tuning_diff']
+    tuning_diff = jsons[json_key]['tuning_diff'] 
     print(segs)
     new_segs = copy(segs)
     for n, s in enumerate(segs):
@@ -148,38 +160,21 @@ def fill_gaps(json_key, segs, jsons, lengths):
         else:
             start = segs[n-1][1][0]
         end = s[0][0]
-        pre_seg = [([start, s[0][1]-adjust_length(end-start, tuning_diff)], [s[0][0], s[0][1]], 'add')]
+        pre_seg = [[[start, s[0][1]-adjust_length(end-start, tuning_diff)], [s[0][0], s[0][1]], 'r']]
         new_segs = pre_seg + new_segs
         print(n, pre_seg)
 
         if n == len(segs)-1:
-            fname_0 = json_key.split('__')[0]
+            fname_0 = json_key.split('__')[0] 
             l_0 = file_length(fname_0, lengths)
-            app_seg = [([s[1][0], s[1][1]],  [l_0, s[1][1]+adjust_length(l_0-s[1][0], tuning_diff)], 'add' )]
+            print(l_0)
+            app_seg = [[[s[1][0], s[1][1]], [l_0, s[1][1]+adjust_length(l_0-s[1][0], tuning_diff)], 'r' ]]
             new_segs = app_seg + new_segs
-            print(n, app_seg)
+            #print(n, app_seg)
     return new_segs
 
-    '''
-    # prepend
-    first_seg_0 = segs[0][0][0]
-    first_seg_1 = segs[0][0][1]
-    prepended_1 = first_seg_1 - adjust_length(first_seg_0, tuning_diff)
-    segs = [([0, first_seg_0], [prepended_1, first_seg_1])] + segs
-
-
-    # append
-    fname_0 = json_key.split('__')[0]
-    last_seg_0 = segs[-1][1][0]
-    last_seg_1 = segs[-1][1][1]
-    l_0 = file_length(fname_0, lengths)
-    l_1 = last_seg_1+adjust_length(l_0-last_seg_0, tuning_diff)
-    segs += [([last_seg_0, last_seg_1], [l_0, l_1])]
-
-    return segs
-    #pprint(segs)
-    '''
-
+    
+'''
 def linReg(partitions):
     print(partitions)
     p = [[i for i in j] for j in partitions[0]]
@@ -198,7 +193,7 @@ def linReg(partitions):
     slope, intercept, r_value, p_value, std_err = stats.linregress(q)
     #print(q)
     print('test', slope, r_value**2)
-
+'''
 
 def main():
 
@@ -215,29 +210,40 @@ def main():
     #json.dump(lengths, open('lengths.json', 'w'))
 
     all_partitions = []
-    for n, sub in enumerate(subgraphs[1:]):
+    for n, sub in enumerate(subgraphs[0:]):
         for s in list(sub.values())[0]:
+            #if len(s) > 1:
             if len(s) > 1:
                 jkeys = [ track_tuple_to_json_id((s[i], s[i+1])) for i, e in  enumerate(s[:-1])]
             else:
                 jkeys = [track_tuple_to_json_id((s[0], list(sub.keys())[0]))]
 
             dtw = jsons[jkeys[0]]['dtw']
+            dtw = [[x[1], x[0]] for x in dtw] #swap columns to match order of file names/lengths
             tuning_diff = jsons[jkeys[0]]['tuning_diff']
             #print(tuning_diff)
             file_names = jkeys[0].split('__')
             partitions = get_partition_bounds(dtw)
             #all_partitions.append(partitions)
-            all_partitions.append(fill_gaps(jkeys[0], partitions, jsons, lengths))
+            #all_partitions.append(fill_gaps(jkeys[0], partitions, jsons, lengths))
             #2**(tuning_diff / 1200)
-            break
-            
+            partitions = fill_gaps(jkeys[0], partitions, jsons, lengths)
+            plotFigure(partitions, jkeys[0], lengths)
+            #with open('plots/'+jkeys[0]+'.txt', 'w') as sfile:
+            #    pprint(partitions, sfile)
+            json.dump(sorted(partitions, key=lambda x: x[0][0]), open('plots/'+jkeys[0]+'.json', 'w'))
+
+
         #all_partitions = linReg(all_partitions)
-        plotFigure(all_partitions[0])
+            '''
+            with open(jkeys[0] + '.txt', 'w') as sfile:
+                pprint(all_partitions[0], sfile)
+            plotFigure(all_partitions[0], jkeys[0], lengths)
+            '''
+            #break
         break
     
-    with open('partitions.txt', 'w') as sfile:
-        pprint(all_partitions, sfile)
+    
     #d = find_dupes(subgraphs)
     #pprint('dupes:', d)
 

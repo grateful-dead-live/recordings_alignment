@@ -10,7 +10,8 @@ import pickle
 
 
 #DATE = '90-03-14'
-FOLDER = '/Volumes/gspeed1/thomasw/grateful_dead/2020/GD-DTW/results_15s_linregress/'#90-03-14/'  #116030_116746'
+#FOLDER = '/Volumes/gspeed1/thomasw/grateful_dead/2020/GD-DTW/results_15s_linregress/'#90-03-14/'  #116030_116746'
+FOLDER = '/Volumes/gspeed1/thomasw/grateful_dead/2020/GD-DTW/results_test/'
 #FOLDER = './'
 
 
@@ -48,8 +49,11 @@ def loadJson(date):
             #jsons[d+'__'+f[:-5]] = json.load(open(os.path.join(folder, d, f)))
             jsons[k] = json.load(open(os.path.join(folder, d, f)))
 
-
-    jsons['unmatched'] = json.load(open(os.path.join(folder, 'unmatched.json')))['unmatched']
+    try:
+        jsons['unmatched'] = json.load(open(os.path.join(folder, 'unmatched.json')))['unmatched']
+    except:
+        print('no unmatched files found')
+        jsons['unmatched'] = []
     return jsons
 
 
@@ -130,7 +134,7 @@ def get_lengths(jsons, id, dirsdict):
         for f in unmatched:
             fs = f.split('_')
             pa = os.path.join(dirsdict[fs[0]], fs[1])
-            '''
+            
             if f.lower().endswith('shn'):
                 cmd = 'shntool len ' + pa
                 p = Popen(cmd, shell=True,stdout=PIPE).communicate()
@@ -141,10 +145,10 @@ def get_lengths(jsons, id, dirsdict):
                 p = Popen(cmd, shell=True,stdout=PIPE).communicate()
                 l = float(str(p[0])[2:-3])
             lengths.append((fs[1], l))
-            print(pa,l)
-            '''
-            l = float(next(item for item in get_item(pa.split('/')[-2]).item_metadata['files'] if item["name"] == pa.split('/')[-1])['length'])
-            lengths.append((fs[1], l))
+            #print(pa,l)
+            
+            #l = float(next(item for item in get_item(pa.split('/')[-2]).item_metadata['files'] if item["name"] == pa.split('/')[-1])['length'])
+            #lengths.append((fs[1], l))
             #print(pa,l)
     #print(lengths)
     return sorted(lengths)
