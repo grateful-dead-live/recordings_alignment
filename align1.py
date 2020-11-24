@@ -1,5 +1,5 @@
 from prepare import prepare_data
-import json, sys
+import json, sys, os
 from collections import Counter
 from pprint import pprint
 from scipy import stats
@@ -9,9 +9,9 @@ from pprint import pprint
 from scipy import stats
 import matplotlib.pyplot as plt
 
-
-DATE = '90-03-14'
-#DATE = '90-07-06'
+DATE = sys.argv[1]
+#DATE = '90-03-14'
+#DATE = '90-02-26'
 MIN_R = 0.9999
 
 flatten = lambda l: [item for sublist in l for item in sublist]
@@ -109,21 +109,21 @@ def partition(segs):
 #split into reasonably well aligned partitions
 def get_partition_bounds(points):
     parts = partition(split_segments2(points))[0]
-    print('split into', len(parts))
+    #print('split into', len(parts))
     part_bounds = [[p[0], p[-1]] for p in parts]
     return part_bounds
 
 
 def file_length(f, lengths):
     id = f.split('_')[0]
-    fname = f.split('_')[1]
+    fname = f.split('_')[1]  # TODO: fix: this doesn't work when underscores in filename
     return list(filter(lambda e: e[0] == fname, lengths[id]))[0][1]
 
 
 def adjust_length(length, cents):
     return length / (2**(cents / 1200))
 
-def plotFigure(segs, json_key, lengths):
+def plotFigure(segs, json_key, lengths, fname):
     
     p = plt.figure()
     for s in segs:
@@ -145,14 +145,15 @@ def plotFigure(segs, json_key, lengths):
         plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color=colour, alpha=0.5)
         #break
     plt.tight_layout()
-    p.savefig('plots/'+json_key+'.pdf', bbox_inches='tight')
+
+    p.savefig(fname+'.pdf', bbox_inches='tight')
     plt.close(p)
 
 
 
 def fill_gaps(json_key, segs, jsons, lengths):
     tuning_diff = jsons[json_key]['tuning_diff'] 
-    print(segs)
+    #print(segs)
     new_segs = copy(segs)
     for n, s in enumerate(segs):
         if n == 0:
@@ -162,16 +163,16 @@ def fill_gaps(json_key, segs, jsons, lengths):
         end = s[0][0]
         pre_seg = [[[start, s[0][1]-adjust_length(end-start, tuning_diff)], [s[0][0], s[0][1]], 'r']]
         new_segs = pre_seg + new_segs
-        print(n, pre_seg)
+        #print(n, pre_seg)
 
         if n == len(segs)-1:
             fname_0 = json_key.split('__')[0] 
             l_0 = file_length(fname_0, lengths)
-            print(l_0)
+            #print(l_0)
             app_seg = [[[s[1][0], s[1][1]], [l_0, s[1][1]+adjust_length(l_0-s[1][0], tuning_diff)], 'r' ]]
-            new_segs = app_seg + new_segs
+            new_segs += app_seg
             #print(n, app_seg)
-    return new_segs
+    return sorted(new_segs, key=lambda s: s[0][0])
 
     
 '''
@@ -207,41 +208,73 @@ def main():
 
     #json.dump(jsons, open('jsons.json', 'w'))
     json.dump(subgraphs, open('subgraphs.json', 'w'))
+    #sys.exit()
     #json.dump(lengths, open('lengths.json', 'w'))
 
     all_partitions = []
-    for n, sub in enumerate(subgraphs[0:]):
+    partition_jkeys = []
+    for n, sub in enumerate(subgraphs[14:]):
+        chains = [] # json keys of chained alignments
         for s in list(sub.values())[0]:
             #if len(s) > 1:
             if len(s) > 1:
-                jkeys = [ track_tuple_to_json_id((s[i], s[i+1])) for i, e in  enumerate(s[:-1])]
+                jkeys = [ track_tuple_to_json_id((s[i], s[i+1])) for i, e in enumerate(s[:-1])]
+                chains.append((len(s), jkeys[0], s))
             else:
                 jkeys = [track_tuple_to_json_id((s[0], list(sub.keys())[0]))]
-
+            print(jkeys[0])
             dtw = jsons[jkeys[0]]['dtw']
             dtw = [[x[1], x[0]] for x in dtw] #swap columns to match order of file names/lengths
             tuning_diff = jsons[jkeys[0]]['tuning_diff']
             #print(tuning_diff)
             file_names = jkeys[0].split('__')
             partitions = get_partition_bounds(dtw)
-            #all_partitions.append(partitions)
+            
             #all_partitions.append(fill_gaps(jkeys[0], partitions, jsons, lengths))
             #2**(tuning_diff / 1200)
             partitions = fill_gaps(jkeys[0], partitions, jsons, lengths)
-            plotFigure(partitions, jkeys[0], lengths)
+            #print(partitions)
+            all_partitions.append(partitions)
+            partition_jkeys.append(jkeys[0])
             #with open('plots/'+jkeys[0]+'.txt', 'w') as sfile:
             #    pprint(partitions, sfile)
-            json.dump(sorted(partitions, key=lambda x: x[0][0]), open('plots/'+jkeys[0]+'.json', 'w'))
 
+            target_folder = os.path.join('plots', DATE)
+            if not os.path.exists(target_folder):
+                os.mkdir(target_folder)
+
+            fname = f'{target_folder}/{jkeys[0]}'
+            json.dump(sorted(partitions, key=lambda x: x[0][0]), open(fname+'.json', 'w'))
+            splotFigure(partitions, jkeys[0], lengths, fname)
+
+
+
+            #break
+        
+
+        #pprint(chains)
+        #break
+
+
+    #sys.exit()
+
+    #find overlaps in reference
+    for j, p in enumerate(all_partitions):
+        for i in range(len(p)):
+            if i > 0 and p[i-1][1][1] > p[i][0][1]+1: #starts earlier on the y axis
+                #there's an overlap
+                print(partition_jkeys[j])
+                print(p[i-1], p[i])
+                print()
+                
 
         #all_partitions = linReg(all_partitions)
-            '''
-            with open(jkeys[0] + '.txt', 'w') as sfile:
-                pprint(all_partitions[0], sfile)
-            plotFigure(all_partitions[0], jkeys[0], lengths)
-            '''
-            #break
-        break
+            
+            #with open(jkeys[0] + '.txt', 'w') as sfile:
+            #.l    pprint(all_partitions[0], sfile)
+            #plotFigure(all_partitions[0], jkeys[0], lengths)
+            
+            
     
     
     #d = find_dupes(subgraphs)

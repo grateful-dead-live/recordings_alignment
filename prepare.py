@@ -11,7 +11,7 @@ import pickle
 
 #DATE = '90-03-14'
 #FOLDER = '/Volumes/gspeed1/thomasw/grateful_dead/2020/GD-DTW/results_15s_linregress/'#90-03-14/'  #116030_116746'
-FOLDER = '/Volumes/gspeed1/thomasw/grateful_dead/2020/GD-DTW/results_test/'
+FOLDER = '/Volumes/gspeed1/thomasw/grateful_dead/2020/GD-DTW/results/'
 #FOLDER = './'
 
 
