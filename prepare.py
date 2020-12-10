@@ -43,7 +43,7 @@ def loadJson(date):
     jsons = {}
     folder = os.path.join(FOLDER, date)
     for d in [f for f in os.listdir(folder) if os.path.isdir(os.path.join(folder, f))]:
-        #print(d)
+        print(d)
         for f in [i for i in os.listdir(os.path.join(folder, d)) if i.endswith('.json') and not i.endswith('full.json') and not i.startswith('unmatched')]:
             k = '{0}_{2}__{1}_{3}'.format(*d.split('_')+f[:-5].split('__')  )
             #jsons[d+'__'+f[:-5]] = json.load(open(os.path.join(folder, d, f)))
@@ -52,7 +52,7 @@ def loadJson(date):
     try:
         jsons['unmatched'] = json.load(open(os.path.join(folder, 'unmatched.json')))['unmatched']
     except:
-        print('no unmatched files found')
+        #print('no unmatched files found')
         jsons['unmatched'] = []
     return jsons
 
@@ -132,6 +132,8 @@ def get_lengths(jsons, id, dirsdict):
     if unmatched:
         #print('unmatched:', unmatched)
         for f in unmatched:
+
+            
             fs = f.split('_')
             pa = os.path.join(dirsdict[fs[0]], fs[1])
             
@@ -147,6 +149,7 @@ def get_lengths(jsons, id, dirsdict):
             lengths.append((fs[1], l))
             #print(pa,l)
             
+            
             #l = float(next(item for item in get_item(pa.split('/')[-2]).item_metadata['files'] if item["name"] == pa.split('/')[-1])['length'])
             #lengths.append((fs[1], l))
             #print(pa,l)
@@ -155,7 +158,7 @@ def get_lengths(jsons, id, dirsdict):
 
 
 def prepare_data(date):
-    print('analysing graph')
+    #print('analysing graph')
     g = read_dot(os.path.join(FOLDER+date, date+'.dot'))
     #g = read_dot(date+'.dot')
     #pickle.dump(g, open('g.pickle', 'wb'))
@@ -165,8 +168,9 @@ def prepare_data(date):
     
     ids_by_number_of_matched_files = rank_ids_amount(subs)
     dirsdict = getDirsDict()
-    jsons = loadJson(date)
-    #jsons = pickle.load(open('jsons.pickle', 'rb'))
+    
+    #jsons = loadJson(date)
+    jsons = pickle.load(open('jsons.pickle', 'rb'))
     #pickle.dump(jsons, open('jsons.pickle', 'wb'))
     #json.dump(jsons, open('jsons.json', 'w'))
     #jsons = json.load(open('jsons.json'))
@@ -174,7 +178,7 @@ def prepare_data(date):
     lengths = {}
     for i in get_all_ids(g):
         lengths[i] = get_lengths(jsons, i, dirsdict)
-    json.dump(lengths, open('lengths.json', 'w'))
+    #json.dump(lengths, open('lengths.json', 'w'))
     #lengths = json.load(open('lengths.json'))
     ids_by_length = rank_ids_length(lengths)
 

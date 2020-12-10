@@ -9,9 +9,9 @@ from pprint import pprint
 from scipy import stats
 import matplotlib.pyplot as plt
 
-DATE = sys.argv[1]
+#DATE = sys.argv[1]
 #DATE = '90-03-14'
-#DATE = '90-02-26'
+DATE = '90-03-24'
 MIN_R = 0.9999
 
 flatten = lambda l: [item for sublist in l for item in sublist]
@@ -59,6 +59,7 @@ def sort_subgraphs(subs, lengths, ids_by_length):
                 if pos != None:
                     ordered.insert(pos, n)
                 else:
+                    pass
                     print('cannot reorder item', rec, n)
     print(ordered)
     res = [subs[i] for i in ordered]
@@ -107,9 +108,9 @@ def partition(segs):
     return partitions
 
 #split into reasonably well aligned partitions
-def get_partition_bounds(points):
+def get_partition_bounds(points, jkey):
     parts = partition(split_segments2(points))[0]
-    #print('split into', len(parts))
+    print(jkey, 'split into', len(parts))
     part_bounds = [[p[0], p[-1]] for p in parts]
     return part_bounds
 
@@ -123,26 +124,47 @@ def file_length(f, lengths):
 def adjust_length(length, cents):
     return length / (2**(cents / 1200))
 
-def plotFigure(segs, json_key, lengths, fname):
+def plotFigure(segs, json_key, lengths, fname, dtw, jsons):
     
     p = plt.figure()
     for s in segs:
         #print(s[0], s[1])
         try:
             colour = s[2]
-            '''
-            # adjust to avoid overlap
-            fname_0 = json_key.split('__')[0]
-            l_0 = file_length(fname_0, lengths)
-            f = l_0 / 350
-            s[1][0] -= f  
-            s[1][1] -= f
-            s[0][0] += f  
-            s[0][1] += f
-            '''
+            plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color=colour, alpha=0.5)
         except:
-            colour = 'b'
-        plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color=colour, alpha=0.5)
+            end = dtw.index(s[1]) + 1
+            start = dtw.index(s[0])
+            sdtw = np.array(dtw)[start:end]
+            #plt.plot(sdtw[:,0], sdtw[:,1], color='b', alpha=0.5)  # plot all values from dtw between start and end
+            plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color='b', alpha=0.5) # plot line from start to end
+
+            #x = sdtw[:,0]
+            #y = sdtw[:,1]
+            #coef = np.polyfit(x,y,1)
+            #poly1d_fn = np.poly1d(coef)
+            #plt.plot(x, poly1d_fn(x), color='b', alpha=0.5)    # plot linear regression line of dtw segment
+
+            #ratio =  1 / 2**(jsons[json_key]['tuning_diff'] / 1200)
+            #len1 = s[1][0] - s[0][0]
+            #print(len1)
+            #print(ratio)
+
+
+            #plt.plot([s[0][0], s[1][0]], [s[0][1], s[0][1] + len1 * ratio], color='b', alpha=0.5)
+            #sys.exit()
+
+
+        '''
+        # use all points of dtw?
+        if colour == 'r':
+            pass
+            #plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color=colour, alpha=0.5)
+        else:
+            points = dtw[dtw.index([s[0][0], s[1][0]]):dtw.index([s[0][1], s[1][1]])]
+            print(points)
+        '''
+
         #break
     plt.tight_layout()
 
@@ -196,6 +218,58 @@ def linReg(partitions):
     print('test', slope, r_value**2)
 '''
 
+
+def process_chain(c, all_partitions, partition_jkeys):
+    #print()
+    #pprint(c)
+    translation = []
+    # try for length 2 only:
+    for i, t in enumerate(c[1][:-1]):
+        jk = track_tuple_to_json_id((t, c[1][i+1])) 
+        translation.append(all_partitions[partition_jkeys.index(jk)])
+    json.dump(translation, open('translation.json', 'w'))
+
+
+
+    first_seg = translation[0][2][:2]
+    print()
+    print('original:  ', first_seg)
+    inter = translation[1]
+    match_start_seg = list(filter(lambda x: x[0][0] <= first_seg[0][1] <= x[1][0], inter))[0][:2]
+    match_end_seg = list(filter(lambda x: x[0][0] <= first_seg[1][1] <= x[1][0], inter))[0][:2]
+    print('start seg: ', match_start_seg)
+    print('end seg:   ', match_end_seg)
+    start_slope = slope(match_start_seg)
+    end_slope = slope(match_end_seg)
+    original_slope = slope(first_seg)
+    #print(original_slope)
+    #print(start_slope)
+    #print(end_slope)
+
+    # this is wrong?:
+    offset = match_start_seg[0][0] - match_start_seg[0][1]
+    newstart_y = first_seg[0][1] * start_slope  - offset
+    newstart = [first_seg[0][0], newstart_y]
+
+    offset = match_end_seg[0][0] - match_end_seg[0][1]
+    newend_y = first_seg[1][1] * end_slope  - offset
+    newend = [first_seg[1][0], newend_y]
+    print([newstart, newend])
+
+
+
+    #pprint(translation)
+
+
+    #segments_1 = all_partitions[partition_jkeys.index(track_tuple_to_json_id((c[1][0], c[1][1])))]
+    #print(track_tuple_to_json_id((c[1][0], c[1][1])))
+    #print()
+    #sys.exit()
+
+def slope(seg):
+    return (seg[1][1] - seg[0][1]) / (seg[1][0] - seg[0][0])
+
+
 def main():
 
     subgraphs, ids_by_length, ids_by_number_of_matched_files, lengths, jsons = prepare_data(DATE)
@@ -207,28 +281,28 @@ def main():
 
 
     #json.dump(jsons, open('jsons.json', 'w'))
-    json.dump(subgraphs, open('subgraphs.json', 'w'))
+    #json.dump(subgraphs, open('subgraphs.json', 'w'))
     #sys.exit()
     #json.dump(lengths, open('lengths.json', 'w'))
 
     all_partitions = []
     partition_jkeys = []
-    for n, sub in enumerate(subgraphs[14:]):
+    for n, sub in enumerate(subgraphs[1:]):
         chains = [] # json keys of chained alignments
         for s in list(sub.values())[0]:
             #if len(s) > 1:
             if len(s) > 1:
                 jkeys = [ track_tuple_to_json_id((s[i], s[i+1])) for i, e in enumerate(s[:-1])]
-                chains.append((len(s), jkeys[0], s))
+                chains.append((len(s), s + list(sub.keys())))
             else:
                 jkeys = [track_tuple_to_json_id((s[0], list(sub.keys())[0]))]
-            print(jkeys[0])
+            #print(jkeys[0])
             dtw = jsons[jkeys[0]]['dtw']
             dtw = [[x[1], x[0]] for x in dtw] #swap columns to match order of file names/lengths
             tuning_diff = jsons[jkeys[0]]['tuning_diff']
             #print(tuning_diff)
-            file_names = jkeys[0].split('__')
-            partitions = get_partition_bounds(dtw)
+            #file_names = jkeys[0].split('__')
+            partitions = get_partition_bounds(dtw, jkeys[0])
             
             #all_partitions.append(fill_gaps(jkeys[0], partitions, jsons, lengths))
             #2**(tuning_diff / 1200)
@@ -244,20 +318,20 @@ def main():
                 os.mkdir(target_folder)
 
             fname = f'{target_folder}/{jkeys[0]}'
-            json.dump(sorted(partitions, key=lambda x: x[0][0]), open(fname+'.json', 'w'))
-            splotFigure(partitions, jkeys[0], lengths, fname)
-
-
+            #json.dump(sorted(partitions, key=lambda x: x[0][0]), open(fname+'.json', 'w'))
+            #sys.exit()
+            #plotFigure(partitions, jkeys[0], lengths, fname, dtw, jsons)
 
             #break
-        
+    
+        for c in chains:
+            process_chain(c, all_partitions, partition_jkeys)
 
-        #pprint(chains)
-        #break
+        break
 
 
-    #sys.exit()
-
+    
+    '''
     #find overlaps in reference
     for j, p in enumerate(all_partitions):
         for i in range(len(p)):
@@ -266,7 +340,7 @@ def main():
                 print(partition_jkeys[j])
                 print(p[i-1], p[i])
                 print()
-                
+    '''          
 
         #all_partitions = linReg(all_partitions)
             
