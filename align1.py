@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 #DATE = sys.argv[1]
 #DATE = '90-03-14'
 DATE = '90-03-24'
+#DATE = '90-03-15'
 MIN_R = 0.9999
 
 flatten = lambda l: [item for sublist in l for item in sublist]
@@ -220,8 +221,9 @@ def linReg(partitions):
 
 
 def process_chain(c, all_partitions, partition_jkeys):
-    #print()
-    #pprint(c)
+    
+    pprint(partition_jkeys)
+    return
     translation = []
     # try for length 2 only:
     for i, t in enumerate(c[1][:-1]):
@@ -235,39 +237,32 @@ def process_chain(c, all_partitions, partition_jkeys):
     print()
     print('original:  ', first_seg)
     inter = translation[1]
-    match_start_seg = list(filter(lambda x: x[0][0] <= first_seg[0][1] <= x[1][0], inter))[0][:2]
-    match_end_seg = list(filter(lambda x: x[0][0] <= first_seg[1][1] <= x[1][0], inter))[0][:2]
+
+    #pprint(inter)
+    match_start_seg = list(filter(lambda x: x[0][0] <= first_seg[0][1] <= x[1][0], inter))[0]#[:2]
+    #print(match_start_seg)
+    #print(list(filter(lambda x: x[0][0] <= first_seg[1][1] <= x[1][0], inter))[0])
+    #sys.exit()
+    match_end_seg = list(filter(lambda x: x[0][0] <= first_seg[1][1] <= x[1][0], inter))[0]#[:2]
+    
+    start_chain = [match_start_seg]
+    end_chain = [match_end_seg]
+
+    def map_seg(p, s):
+        prop = (p - s[0][0]) / (s[1][0] - s[0][0])
+        return prop * (s[1][1] - s[0][1]) + s[0][1]
+    
+    def map_chain(seg, chain):
+        for s in chain:
+            seg = [seg[0], map_seg(seg[1], s)]
+        return seg
+
+    start_to_ref = map_chain(first_seg[0], start_chain)
+    end_to_ref = map_chain(first_seg[1], end_chain)
+
     print('start seg: ', match_start_seg)
     print('end seg:   ', match_end_seg)
-    start_slope = slope(match_start_seg)
-    end_slope = slope(match_end_seg)
-    original_slope = slope(first_seg)
-    #print(original_slope)
-    #print(start_slope)
-    #print(end_slope)
-
-    # this is wrong?:
-    offset = match_start_seg[0][0] - match_start_seg[0][1]
-    newstart_y = first_seg[0][1] * start_slope  - offset
-    newstart = [first_seg[0][0], newstart_y]
-
-    offset = match_end_seg[0][0] - match_end_seg[0][1]
-    newend_y = first_seg[1][1] * end_slope  - offset
-    newend = [first_seg[1][0], newend_y]
-    print([newstart, newend])
-
-
-
-    #pprint(translation)
-
-
-    #segments_1 = all_partitions[partition_jkeys.index(track_tuple_to_json_id((c[1][0], c[1][1])))]
-    #print(track_tuple_to_json_id((c[1][0], c[1][1])))
-    #print()
-    #sys.exit()
-
-def slope(seg):
-    return (seg[1][1] - seg[0][1]) / (seg[1][0] - seg[0][0])
+    print('new seg:   ', start_to_ref, end_to_ref)
 
 
 def main():
@@ -277,14 +272,13 @@ def main():
 
 
     #file_length('116746_gd1990-03-14s1t02.flac', lengths)
-    #sys.exit()
+ 
 
 
     #json.dump(jsons, open('jsons.json', 'w'))
+    #json.dump(lengths, open('lengths.json', 'w'))
     #json.dump(subgraphs, open('subgraphs.json', 'w'))
     #sys.exit()
-    #json.dump(lengths, open('lengths.json', 'w'))
-
     all_partitions = []
     partition_jkeys = []
     for n, sub in enumerate(subgraphs[1:]):
@@ -318,6 +312,7 @@ def main():
                 os.mkdir(target_folder)
 
             fname = f'{target_folder}/{jkeys[0]}'
+            #print(fname)
             #json.dump(sorted(partitions, key=lambda x: x[0][0]), open(fname+'.json', 'w'))
             #sys.exit()
             #plotFigure(partitions, jkeys[0], lengths, fname, dtw, jsons)

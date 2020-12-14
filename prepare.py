@@ -169,8 +169,8 @@ def prepare_data(date):
     ids_by_number_of_matched_files = rank_ids_amount(subs)
     dirsdict = getDirsDict()
     
-    #jsons = loadJson(date)
-    jsons = pickle.load(open('jsons.pickle', 'rb'))
+    jsons = loadJson(date)
+    #jsons = pickle.load(open('jsons.pickle', 'rb'))
     #pickle.dump(jsons, open('jsons.pickle', 'wb'))
     #json.dump(jsons, open('jsons.json', 'w'))
     #jsons = json.load(open('jsons.json'))
