@@ -309,7 +309,7 @@ def process_chain(c, all_partitions, partition_jkeys, jsons):
         start_to_ref = [seg[0][0], map_seg(seg[0][1], match_start_seg)]
         end_to_ref = [seg[1][0], map_seg(seg[1][1], match_end_seg)]
 
-        new_segment = [start_to_ref, end_to_ref, 't']
+        new_segment = [start_to_ref, end_to_ref, 'c']
         new_segments.append(new_segment)
         
         print('new seg:   ', new_segment)
