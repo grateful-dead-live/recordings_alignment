@@ -264,7 +264,7 @@ def process_chain_BAK(c, all_partitions, partition_jkeys):
 
 
 
-def process_chain(c, all_partitions, partition_jkeys):
+def process_chain(c, all_partitions, partition_jkeys, jsons):
     def map_seg(p, s):
             prop = (p - s[0][0]) / (s[1][0] - s[0][0])
             return prop * (s[1][1] - s[0][1]) + s[0][1]
@@ -276,12 +276,17 @@ def process_chain(c, all_partitions, partition_jkeys):
     jk2 = track_tuple_to_json_id((c[1], c[-1])) 
     translation = [all_partitions[partition_jkeys.index(jk1)], all_partitions[partition_jkeys.index(jk2)]]
 
+    #tuning_diff = jsons[jk1]['tuning_diff'] + jsons[jk2]['tuning_diff']
+
+
     new_segments = []
     for s in translation[0]:
         pend_flag = False
         seg = s[:2]
         print('original:  ', seg)
 
+
+        # if start[0][1] < 0 or start[1][1] > length the first/last segment is used. tuning_diff instead?
         search_segment = list(filter(lambda x: x[0][0] <= seg[0][1] <= x[1][0], translation[1]))
         if search_segment:
             match_start_seg = search_segment[0][:2]
@@ -337,7 +342,7 @@ def main():
     #sys.exit()
     all_partitions = []
     partition_jkeys = []
-    for n, sub in enumerate(subgraphs[15:]):
+    for n, sub in enumerate(subgraphs[16:]):
         chains = [] # json keys of chained alignments
         for s in list(sub.values())[0]:
             #if len(s) > 1:
@@ -377,11 +382,11 @@ def main():
             #break
     
         for c in chains:
-            all_partitions, partition_jkeys = process_chain(c, all_partitions, partition_jkeys)
+            all_partitions, partition_jkeys = process_chain(c, all_partitions, partition_jkeys, jsons)
             #break
-        json.dump(all_partitions, open('all_partition.json', 'w'))
+        #json.dump(all_partitions, open('all_partition.json', 'w'))
         break
-
+    json.dump(all_partitions, open('all_partition.json', 'w'))
 
     
     '''
