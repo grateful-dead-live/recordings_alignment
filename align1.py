@@ -289,7 +289,6 @@ def process_chain(c, all_partitions, partition_jkeys):
             print('start seg: ', match_start_seg)
         else:
             print('start prepend to', translation[1][0][:2])
-            print()
             continue_flag = True
         
 
@@ -299,7 +298,6 @@ def process_chain(c, all_partitions, partition_jkeys):
             print('end seg:   ', match_end_seg)
         else:
             print('end append to', translation[1][-1][:2])
-            print()
             continue_flag = True
 
         if continue_flag:
