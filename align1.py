@@ -8,7 +8,6 @@ from copy import copy
 from pprint import pprint
 from scipy import stats
 import matplotlib.pyplot as plt
-from math import ceil, floor
 
 
 #DATE = sys.argv[1]
@@ -270,18 +269,6 @@ def process_chain(c, all_partitions, partition_jkeys):
             prop = (p - s[0][0]) / (s[1][0] - s[0][0])
             return prop * (s[1][1] - s[0][1]) + s[0][1]
     
-
-    # the following may not be needed, I think the problem is with prepending and appending alignment in previous step
-    # TODO: if point is negative or behind length, calculate by extending first/last line
-    '''
-    def ceil3(x):
-        x[0] = [0.001 * ceil(1000 * n) for n in x[0]]
-        return x
-    
-    def floor3(x):
-        x[1] = [0.001 * floor(1000 * n) for n in x[1]]
-        return x
-    '''
     print()
     print()
     print(c)
@@ -289,7 +276,6 @@ def process_chain(c, all_partitions, partition_jkeys):
     jk2 = track_tuple_to_json_id((c[1], c[-1])) 
     translation = [all_partitions[partition_jkeys.index(jk1)], all_partitions[partition_jkeys.index(jk2)]]
 
-    
     new_segments = []
     for s in translation[0]:
         continue_flag = False
