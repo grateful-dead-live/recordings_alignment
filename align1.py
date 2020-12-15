@@ -294,6 +294,8 @@ def process_chain(c, all_partitions, partition_jkeys, jsons):
         else:
             print('prepend to ', translation[1][0][:2])
             match_start_seg = translation[1][0][:2]
+            #match_start_seg = [[0, adjust_length(1, jsons[jk2]['tuning_diff'])+translation[1][0][0][1]], translation[1][0][1]]  # ??
+            print('prepend to ', match_start_seg)
             pend_flag = True
      
         search_segment = list(filter(lambda x: x[0][0] <= seg[1][1] <= x[1][0], translation[1]))
