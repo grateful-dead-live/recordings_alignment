@@ -278,8 +278,7 @@ def process_chain(c, all_partitions, partition_jkeys):
 
     new_segments = []
     for s in translation[0]:
-        continue_flag = False
-        #seg = ceilfloor3(s[:2])     # ceil start and floor end, otherwise some segments are not found! not sure why 
+        pend_flag = False
         seg = s[:2]
         print('original:  ', seg)
 
@@ -288,35 +287,29 @@ def process_chain(c, all_partitions, partition_jkeys):
             match_start_seg = search_segment[0][:2]
             print('start seg: ', match_start_seg)
         else:
-            print('start prepend to', translation[1][0][:2])
-            continue_flag = True
-        
-
+            print('prepend to ', translation[1][0][:2])
+            match_start_seg = translation[1][0][:2]
+            pend_flag = True
+     
         search_segment = list(filter(lambda x: x[0][0] <= seg[1][1] <= x[1][0], translation[1]))
         if search_segment:
-            match_end_seg = search_segment[0][:2]
+            match_end_seg = search_segment[-1][:2]
             print('end seg:   ', match_end_seg)
         else:
-            print('end append to', translation[1][-1][:2])
-            continue_flag = True
-
-        if continue_flag:
-            continue
+            print('append to  ', translation[1][-1][:2])
+            end_to_ref = translation[1][-1][:2]
+            pend_flag = True
+           
         
-        
-        start_chain = match_start_seg
-        end_chain = match_end_seg
-
-        
-        
-        start_to_ref = [seg[0][0], map_seg(seg[0][1], start_chain)]
-        end_to_ref = [seg[1][0], map_seg(seg[1][1], end_chain)]
+        start_to_ref = [seg[0][0], map_seg(seg[0][1], match_start_seg)]
+        end_to_ref = [seg[1][0], map_seg(seg[1][1], match_end_seg)]
 
         new_segment = [start_to_ref, end_to_ref, 't']
         new_segments.append(new_segment)
         
         print('new seg:   ', new_segment)
         print()
+        #sys.exit()
 
     #  TODO: fill gap for new partition
     all_partitions.append(new_segments)
@@ -385,7 +378,7 @@ def main():
     
         for c in chains:
             all_partitions, partition_jkeys = process_chain(c, all_partitions, partition_jkeys)
-            
+            #break
         json.dump(all_partitions, open('all_partition.json', 'w'))
         break
 
