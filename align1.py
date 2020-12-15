@@ -8,6 +8,8 @@ from copy import copy
 from pprint import pprint
 from scipy import stats
 import matplotlib.pyplot as plt
+from math import ceil, floor
+
 
 #DATE = sys.argv[1]
 #DATE = '90-03-14'
@@ -111,7 +113,7 @@ def partition(segs):
 #split into reasonably well aligned partitions
 def get_partition_bounds(points, jkey):
     parts = partition(split_segments2(points))[0]
-    print(jkey, 'split into', len(parts))
+    #print(jkey, 'split into', len(parts))
     part_bounds = [[p[0], p[-1]] for p in parts]
     return part_bounds
 
@@ -219,11 +221,11 @@ def linReg(partitions):
     print('test', slope, r_value**2)
 '''
 
-
-def process_chain(c, all_partitions, partition_jkeys):
+'''
+def process_chain_BAK(c, all_partitions, partition_jkeys):
     
-    pprint(partition_jkeys)
-    return
+    #pprint(partition_jkeys)
+    #return
     translation = []
     # try for length 2 only:
     for i, t in enumerate(c[1][:-1]):
@@ -238,11 +240,7 @@ def process_chain(c, all_partitions, partition_jkeys):
     print('original:  ', first_seg)
     inter = translation[1]
 
-    #pprint(inter)
     match_start_seg = list(filter(lambda x: x[0][0] <= first_seg[0][1] <= x[1][0], inter))[0]#[:2]
-    #print(match_start_seg)
-    #print(list(filter(lambda x: x[0][0] <= first_seg[1][1] <= x[1][0], inter))[0])
-    #sys.exit()
     match_end_seg = list(filter(lambda x: x[0][0] <= first_seg[1][1] <= x[1][0], inter))[0]#[:2]
     
     start_chain = [match_start_seg]
@@ -263,6 +261,87 @@ def process_chain(c, all_partitions, partition_jkeys):
     print('start seg: ', match_start_seg)
     print('end seg:   ', match_end_seg)
     print('new seg:   ', start_to_ref, end_to_ref)
+'''
+
+
+
+def process_chain(c, all_partitions, partition_jkeys):
+    def map_seg(p, s):
+            prop = (p - s[0][0]) / (s[1][0] - s[0][0])
+            return prop * (s[1][1] - s[0][1]) + s[0][1]
+    
+
+    # the following may not be needed, I think the problem is with prepending and appending alignment in previous step
+    # TODO: if point is negative or behind length, calculate by extending first/last line
+    '''
+    def ceil3(x):
+        x[0] = [0.001 * ceil(1000 * n) for n in x[0]]
+        return x
+    
+    def floor3(x):
+        x[1] = [0.001 * floor(1000 * n) for n in x[1]]
+        return x
+    '''
+    print()
+    print()
+    print(c)
+    jk1 = track_tuple_to_json_id((c[0], c[1])) 
+    jk2 = track_tuple_to_json_id((c[1], c[-1])) 
+    translation = [all_partitions[partition_jkeys.index(jk1)], all_partitions[partition_jkeys.index(jk2)]]
+
+    
+    new_segments = []
+    for s in translation[0]:
+        continue_flag = False
+        #seg = ceilfloor3(s[:2])     # ceil start and floor end, otherwise some segments are not found! not sure why 
+        seg = s[:2]
+        print('original:  ', seg)
+
+        search_segment = list(filter(lambda x: x[0][0] <= seg[0][1] <= x[1][0], translation[1]))
+        if search_segment:
+            match_start_seg = search_segment[0][:2]
+            print('start seg: ', match_start_seg)
+        else:
+            print('start prepend to', translation[1][0][:2])
+            print()
+            continue_flag = True
+        
+
+        search_segment = list(filter(lambda x: x[0][0] <= seg[1][1] <= x[1][0], translation[1]))
+        if search_segment:
+            match_end_seg = search_segment[0][:2]
+            print('end seg:   ', match_end_seg)
+        else:
+            print('end append to', translation[1][-1][:2])
+            print()
+            continue_flag = True
+
+        if continue_flag:
+            continue
+        
+        
+        start_chain = match_start_seg
+        end_chain = match_end_seg
+
+        
+        
+        start_to_ref = [seg[0][0], map_seg(seg[0][1], start_chain)]
+        end_to_ref = [seg[1][0], map_seg(seg[1][1], end_chain)]
+
+        new_segment = [start_to_ref, end_to_ref, 't']
+        new_segments.append(new_segment)
+        
+        print('new seg:   ', new_segment)
+        print()
+
+    #  TODO: fill gap for new partition
+    all_partitions.append(new_segments)
+    new_jkey = track_tuple_to_json_id((c[0], c[-1]))
+    partition_jkeys.append(new_jkey)
+
+    return all_partitions, partition_jkeys
+    
+
 
 
 def main():
@@ -277,17 +356,18 @@ def main():
 
     #json.dump(jsons, open('jsons.json', 'w'))
     #json.dump(lengths, open('lengths.json', 'w'))
-    #json.dump(subgraphs, open('subgraphs.json', 'w'))
+    json.dump(subgraphs, open('subgraphs.json', 'w'))
     #sys.exit()
     all_partitions = []
     partition_jkeys = []
-    for n, sub in enumerate(subgraphs[1:]):
+    for n, sub in enumerate(subgraphs[15:]):
         chains = [] # json keys of chained alignments
         for s in list(sub.values())[0]:
             #if len(s) > 1:
             if len(s) > 1:
                 jkeys = [ track_tuple_to_json_id((s[i], s[i+1])) for i, e in enumerate(s[:-1])]
-                chains.append((len(s), s + list(sub.keys())))
+                #chains.append((len(s), s + list(sub.keys())))
+                chains.append(s + list(sub.keys()))
             else:
                 jkeys = [track_tuple_to_json_id((s[0], list(sub.keys())[0]))]
             #print(jkeys[0])
@@ -320,8 +400,9 @@ def main():
             #break
     
         for c in chains:
-            process_chain(c, all_partitions, partition_jkeys)
-
+            all_partitions, partition_jkeys = process_chain(c, all_partitions, partition_jkeys)
+            
+        json.dump(all_partitions, open('all_partition.json', 'w'))
         break
 
 
