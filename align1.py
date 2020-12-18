@@ -276,16 +276,12 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
     jk2 = track_tuple_to_json_id((c[1], c[-1])) 
     translation = [all_partitions[partition_jkeys.index(jk1)], all_partitions[partition_jkeys.index(jk2)]]
 
-    #tuning_diff = jsons[jk1]['tuning_diff'] + jsons[jk2]['tuning_diff']
-
-
     new_segments = []
     for s in translation[0]:
         prepend = False
         append = False
         seg = s[:2]
         print('original:  ', seg)
-
 
         # if start[0][1] < 0 or start[1][1] > length the first/last segment is extended. tuning_diff instead?
         search_segment = list(filter(lambda x: x[0][0] <= seg[0][1] <= x[1][0], translation[1]))
@@ -300,23 +296,12 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
         search_segment = list(filter(lambda x: x[0][0] <= seg[1][1] <= x[1][0], translation[1]))
         if search_segment:
             match_end_seg = search_segment[-1][:2]
-            print('end seg:   ', match_end_seg)
+            #print('end seg:   ', match_end_seg)
         else:
             print('append to  ', translation[1][-1][:2])
             match_end_seg = translation[1][-1][:2]
             append = True
-           
         
-        #match_start_seg = [[0, adjust_length(1, jsons[jk2]['tuning_diff'])+translation[1][0][0][1]], translation[1][0][1]]  # ??
-
-       
-        #tuning_diff = jsons[jk1]['tuning_diff'] + jsons[jk2]['tuning_diff']
-        #l = adjust_length(seg[1][0]-seg[0][0], tuning_diff)
-        #if prepend:
-        #    y_start = match_start_seg[0][1] - l
-        #    y_end = match_start_seg[1][1]
-        #    print(y_start, y_end)
-
         if prepend:
             stype = 'cp'
         elif append:
@@ -324,7 +309,6 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
         else:
             stype = 'c'
         
-
         start_to_ref = [seg[0][0], map_seg(seg[0][1], match_start_seg)]
         end_to_ref = [seg[1][0], map_seg(seg[1][1], match_end_seg)]
 
@@ -343,20 +327,14 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
     
     partition_jkeys.append(new_jkey)
 
-
     p = plt.figure()
     for s in new_segments:
         plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color='b', alpha=0.5)
     plt.tight_layout()
     p.savefig('chain_test/'+new_jkey+'.pdf', bbox_inches='tight')
     plt.close(p)
-    
-    
-
 
     return all_partitions, partition_jkeys
-    
-
 
 
 def main():
