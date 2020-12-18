@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 
 #DATE = sys.argv[1]
 #DATE = '90-03-14'
-DATE = '90-03-24'
-#DATE = '90-03-15'
+#DATE = '90-03-24'
+DATE = '90-03-15'
 MIN_R = 0.9999
 
 flatten = lambda l: [item for sublist in l for item in sublist]
@@ -137,7 +137,7 @@ def plotFigure(segs, json_key, lengths, fname, dtw, jsons):
         except:
             end = dtw.index(s[1]) + 1
             start = dtw.index(s[0])
-            sdtw = np.array(dtw)[start:end]
+            #sdtw = np.array(dtw)[start:end]
             #plt.plot(sdtw[:,0], sdtw[:,1], color='b', alpha=0.5)  # plot all values from dtw between start and end
             plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color='b', alpha=0.5) # plot line from start to end
 
@@ -175,8 +175,8 @@ def plotFigure(segs, json_key, lengths, fname, dtw, jsons):
 
 
 
-def fill_gaps(json_key, segs, jsons, lengths):
-    tuning_diff = jsons[json_key]['tuning_diff'] 
+def fill_gaps(json_key, segs, lengths, tuning_diff):
+    #tuning_diff = jsons[json_key]['tuning_diff'] 
     #print(segs)
     new_segs = copy(segs)
     for n, s in enumerate(segs):
@@ -264,7 +264,7 @@ def process_chain_BAK(c, all_partitions, partition_jkeys):
 
 
 
-def process_chain(c, all_partitions, partition_jkeys, jsons):
+def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
     def map_seg(p, s):
             prop = (p - s[0][0]) / (s[1][0] - s[0][0])
             return prop * (s[1][1] - s[0][1]) + s[0][1]
@@ -281,22 +281,21 @@ def process_chain(c, all_partitions, partition_jkeys, jsons):
 
     new_segments = []
     for s in translation[0]:
-        pend_flag = False
+        prepend = False
+        append = False
         seg = s[:2]
         print('original:  ', seg)
 
 
-        # if start[0][1] < 0 or start[1][1] > length the first/last segment is used. tuning_diff instead?
+        # if start[0][1] < 0 or start[1][1] > length the first/last segment is extended. tuning_diff instead?
         search_segment = list(filter(lambda x: x[0][0] <= seg[0][1] <= x[1][0], translation[1]))
         if search_segment:
             match_start_seg = search_segment[0][:2]
-            print('start seg: ', match_start_seg)
+            #print('start seg: ', match_start_seg)
         else:
             print('prepend to ', translation[1][0][:2])
             match_start_seg = translation[1][0][:2]
-            #match_start_seg = [[0, adjust_length(1, jsons[jk2]['tuning_diff'])+translation[1][0][0][1]], translation[1][0][1]]  # ??
-            print('prepend to ', match_start_seg)
-            pend_flag = True
+            prepend = True
      
         search_segment = list(filter(lambda x: x[0][0] <= seg[1][1] <= x[1][0], translation[1]))
         if search_segment:
@@ -304,24 +303,56 @@ def process_chain(c, all_partitions, partition_jkeys, jsons):
             print('end seg:   ', match_end_seg)
         else:
             print('append to  ', translation[1][-1][:2])
-            end_to_ref = translation[1][-1][:2]
-            pend_flag = True
+            match_end_seg = translation[1][-1][:2]
+            append = True
            
         
+        #match_start_seg = [[0, adjust_length(1, jsons[jk2]['tuning_diff'])+translation[1][0][0][1]], translation[1][0][1]]  # ??
+
+       
+        #tuning_diff = jsons[jk1]['tuning_diff'] + jsons[jk2]['tuning_diff']
+        #l = adjust_length(seg[1][0]-seg[0][0], tuning_diff)
+        #if prepend:
+        #    y_start = match_start_seg[0][1] - l
+        #    y_end = match_start_seg[1][1]
+        #    print(y_start, y_end)
+
+        if prepend:
+            stype = 'cp'
+        elif append:
+            stype = 'ca'
+        else:
+            stype = 'c'
+        
+
         start_to_ref = [seg[0][0], map_seg(seg[0][1], match_start_seg)]
         end_to_ref = [seg[1][0], map_seg(seg[1][1], match_end_seg)]
 
-        new_segment = [start_to_ref, end_to_ref, 'c']
+        new_segment = [start_to_ref, end_to_ref, stype]
         new_segments.append(new_segment)
         
         print('new seg:   ', new_segment)
         print()
         #sys.exit()
 
-    #  TODO: fill gap for new partition
-    all_partitions.append(new_segments)
+
     new_jkey = track_tuple_to_json_id((c[0], c[-1]))
+    json.dump(new_segments, open('new_segments.json', 'w'))
+    
+    all_partitions.append(new_segments)
+    
     partition_jkeys.append(new_jkey)
+
+
+    p = plt.figure()
+    for s in new_segments:
+        plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color='b', alpha=0.5)
+    plt.tight_layout()
+    p.savefig(new_jkey+'.pdf', bbox_inches='tight')
+    plt.close(p)
+    
+    
+
 
     return all_partitions, partition_jkeys
     
@@ -340,11 +371,11 @@ def main():
 
     #json.dump(jsons, open('jsons.json', 'w'))
     #json.dump(lengths, open('lengths.json', 'w'))
-    json.dump(subgraphs, open('subgraphs.json', 'w'))
+    #json.dump(subgraphs, open('subgraphs.json', 'w'))
     #sys.exit()
     all_partitions = []
     partition_jkeys = []
-    for n, sub in enumerate(subgraphs[16:]):
+    for n, sub in enumerate(subgraphs[14:]):
         chains = [] # json keys of chained alignments
         for s in list(sub.values())[0]:
             #if len(s) > 1:
@@ -364,7 +395,7 @@ def main():
             
             #all_partitions.append(fill_gaps(jkeys[0], partitions, jsons, lengths))
             #2**(tuning_diff / 1200)
-            partitions = fill_gaps(jkeys[0], partitions, jsons, lengths)
+            partitions = fill_gaps(jkeys[0], partitions, lengths, jsons[jkeys[0]]['tuning_diff'])
             #print(partitions)
             all_partitions.append(partitions)
             partition_jkeys.append(jkeys[0])
@@ -384,7 +415,7 @@ def main():
             #break
     
         for c in chains:
-            all_partitions, partition_jkeys = process_chain(c, all_partitions, partition_jkeys, jsons)
+            all_partitions, partition_jkeys = process_chain(c, all_partitions, partition_jkeys, jsons, lengths)
             #break
         #json.dump(all_partitions, open('all_partition.json', 'w'))
         break
