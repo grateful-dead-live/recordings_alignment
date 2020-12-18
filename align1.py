@@ -348,7 +348,7 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
     for s in new_segments:
         plt.plot([s[0][0], s[1][0]], [s[0][1], s[1][1]], color='b', alpha=0.5)
     plt.tight_layout()
-    p.savefig(new_jkey+'.pdf', bbox_inches='tight')
+    p.savefig('chain_test/'+new_jkey+'.pdf', bbox_inches='tight')
     plt.close(p)
     
     
@@ -375,12 +375,12 @@ def main():
     #sys.exit()
     all_partitions = []
     partition_jkeys = []
-    for n, sub in enumerate(subgraphs[14:]):
+    for n, sub in enumerate(subgraphs[0:]):
         chains = [] # json keys of chained alignments
         for s in list(sub.values())[0]:
             #if len(s) > 1:
             if len(s) > 1:
-                jkeys = [ track_tuple_to_json_id((s[i], s[i+1])) for i, e in enumerate(s[:-1])]
+                jkeys = [track_tuple_to_json_id((s[i], s[i+1])) for i, e in enumerate(s[:-1])]
                 #chains.append((len(s), s + list(sub.keys())))
                 chains.append(s + list(sub.keys()))
             else:
@@ -418,7 +418,7 @@ def main():
             all_partitions, partition_jkeys = process_chain(c, all_partitions, partition_jkeys, jsons, lengths)
             #break
         #json.dump(all_partitions, open('all_partition.json', 'w'))
-        break
+        #break
     json.dump(all_partitions, open('all_partition.json', 'w'))
 
     
