@@ -413,7 +413,12 @@ def main():
 
     all_partitions, partition_jkeys = cleanResult(subgraphs, all_partitions, partition_jkeys)
 
-    json.dump(all_partitions, open('all_partition.json', 'w'))
+
+    result = {}
+    for key, value in zip(partition_jkeys, all_partitions):
+        result[key] = value
+
+    json.dump(result, open('all_partition.json', 'w'))
     #pprint(partition_jkeys)
     
     #timelines = 
