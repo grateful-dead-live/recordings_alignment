@@ -264,7 +264,7 @@ def process_chain_BAK(c, all_partitions, partition_jkeys):
 '''
 
 
-# TODO: this has errors for chains with more than 3 elements
+# TODO: test for chains > 2
 def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
     def map_seg(p, s):
         prop = (p - s[0][0]) / (s[1][0] - s[0][0])
@@ -276,7 +276,7 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
 
     #c = [c[0]] + c[-2:]
     jk1 = track_tuple_to_json_id((c[0], c[1])) 
-    jk2 = track_tuple_to_json_id((c[-2], c[-1])) 
+    jk2 = track_tuple_to_json_id((c[1], c[-1])) 
     translation = [all_partitions[partition_jkeys.index(jk1)], all_partitions[partition_jkeys.index(jk2)]]
 
     new_segments = []
@@ -341,14 +341,12 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
 # remove intermediate chain alignments from result 
 def cleanResult(subgraphs, all_partitions, partition_jkeys):
     for sub in subgraphs:
-        for s in  list(filter(lambda e: len(e)>1, list(sub.values())[0])):
-            jk = track_tuple_to_json_id((s[0], s[-1])) 
+        for s in list(filter(lambda e: len(e)>1, list(sub.values())[0])):
+            jk = track_tuple_to_json_id((s[0], s[1])) 
             ji = partition_jkeys.index(jk)
-            #print(ji)
+            print(ji, jk)
             del partition_jkeys[ji]
             del all_partitions[ji]
-            #partition_jkeys.pop()
-
     return all_partitions, partition_jkeys
 
 
@@ -413,7 +411,7 @@ def main():
         #json.dump(all_partitions, open('all_partition.json', 'w'))
         #break
 
-    #all_partitions, partition_jkeys = cleanResult(subgraphs, all_partitions, partition_jkeys)
+    all_partitions, partition_jkeys = cleanResult(subgraphs, all_partitions, partition_jkeys)
 
     json.dump(all_partitions, open('all_partition.json', 'w'))
     #pprint(partition_jkeys)
