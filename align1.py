@@ -276,7 +276,7 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
 
     #c = [c[0]] + c[-2:]
     jk1 = track_tuple_to_json_id((c[0], c[1])) 
-    jk2 = track_tuple_to_json_id((c[1], c[-1])) 
+    jk2 = track_tuple_to_json_id((c[-2], c[-1])) 
     translation = [all_partitions[partition_jkeys.index(jk1)], all_partitions[partition_jkeys.index(jk2)]]
 
     new_segments = []
