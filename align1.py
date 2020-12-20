@@ -8,6 +8,7 @@ from copy import copy
 from pprint import pprint
 from scipy import stats
 import matplotlib.pyplot as plt
+from meta_alignment_test import plot_timelines
 
 
 #DATE = sys.argv[1]
@@ -263,15 +264,17 @@ def process_chain_BAK(c, all_partitions, partition_jkeys):
 '''
 
 
-
+# TODO: this has errors for chains with more than 3 elements
 def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
     def map_seg(p, s):
-            prop = (p - s[0][0]) / (s[1][0] - s[0][0])
-            return prop * (s[1][1] - s[0][1]) + s[0][1]
+        prop = (p - s[0][0]) / (s[1][0] - s[0][0])
+        return prop * (s[1][1] - s[0][1]) + s[0][1]
     
     print()
     print()
     print(c)
+
+    #c = [c[0]] + c[-2:]
     jk1 = track_tuple_to_json_id((c[0], c[1])) 
     jk2 = track_tuple_to_json_id((c[1], c[-1])) 
     translation = [all_partitions[partition_jkeys.index(jk1)], all_partitions[partition_jkeys.index(jk2)]]
@@ -287,7 +290,6 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
         search_segment = list(filter(lambda x: x[0][0] <= seg[0][1] <= x[1][0], translation[1]))
         if search_segment:
             match_start_seg = search_segment[0][:2]
-            #print('start seg: ', match_start_seg)
         else:
             print('prepend to ', translation[1][0][:2])
             match_start_seg = translation[1][0][:2]
@@ -296,7 +298,6 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
         search_segment = list(filter(lambda x: x[0][0] <= seg[1][1] <= x[1][0], translation[1]))
         if search_segment:
             match_end_seg = search_segment[-1][:2]
-            #print('end seg:   ', match_end_seg)
         else:
             print('append to  ', translation[1][-1][:2])
             match_end_seg = translation[1][-1][:2]
@@ -321,6 +322,7 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
 
 
     new_jkey = track_tuple_to_json_id((c[0], c[-1]))
+    print(new_jkey)
     json.dump(new_segments, open('new_segments.json', 'w'))
     
     all_partitions.append(new_segments)
@@ -336,6 +338,19 @@ def process_chain(c, all_partitions, partition_jkeys, jsons, lengths):
 
     return all_partitions, partition_jkeys
 
+# remove intermediate chain alignments from result 
+def cleanResult(subgraphs, all_partitions, partition_jkeys):
+    for sub in subgraphs:
+        for s in  list(filter(lambda e: len(e)>1, list(sub.values())[0])):
+            jk = track_tuple_to_json_id((s[0], s[-1])) 
+            ji = partition_jkeys.index(jk)
+            #print(ji)
+            del partition_jkeys[ji]
+            del all_partitions[ji]
+            #partition_jkeys.pop()
+
+    return all_partitions, partition_jkeys
+
 
 def main():
 
@@ -346,37 +361,37 @@ def main():
     #file_length('116746_gd1990-03-14s1t02.flac', lengths)
  
 
-
     #json.dump(jsons, open('jsons.json', 'w'))
     #json.dump(lengths, open('lengths.json', 'w'))
     #json.dump(subgraphs, open('subgraphs.json', 'w'))
     #sys.exit()
     all_partitions = []
     partition_jkeys = []
-    for n, sub in enumerate(subgraphs[0:]):
+
+    for sub in subgraphs:
         chains = [] # json keys of chained alignments
         for s in list(sub.values())[0]:
             #if len(s) > 1:
             if len(s) > 1:
-                jkeys = [track_tuple_to_json_id((s[i], s[i+1])) for i, e in enumerate(s[:-1])]
+                jkey = track_tuple_to_json_id((s[0], s[1]))
                 #chains.append((len(s), s + list(sub.keys())))
                 chains.append(s + list(sub.keys()))
             else:
-                jkeys = [track_tuple_to_json_id((s[0], list(sub.keys())[0]))]
+                jkey = track_tuple_to_json_id((s[0], list(sub.keys())[0]))
             #print(jkeys[0])
-            dtw = jsons[jkeys[0]]['dtw']
+            dtw = jsons[jkey]['dtw']
             dtw = [[x[1], x[0]] for x in dtw] #swap columns to match order of file names/lengths
-            tuning_diff = jsons[jkeys[0]]['tuning_diff']
+            tuning_diff = jsons[jkey]['tuning_diff']
             #print(tuning_diff)
             #file_names = jkeys[0].split('__')
-            partitions = get_partition_bounds(dtw, jkeys[0])
+            partitions = get_partition_bounds(dtw, jkey)
             
             #all_partitions.append(fill_gaps(jkeys[0], partitions, jsons, lengths))
             #2**(tuning_diff / 1200)
-            partitions = fill_gaps(jkeys[0], partitions, lengths, jsons[jkeys[0]]['tuning_diff'])
+            partitions = fill_gaps(jkey, partitions, lengths, jsons[jkey]['tuning_diff'])
             #print(partitions)
             all_partitions.append(partitions)
-            partition_jkeys.append(jkeys[0])
+            partition_jkeys.append(jkey)
             #with open('plots/'+jkeys[0]+'.txt', 'w') as sfile:
             #    pprint(partitions, sfile)
 
@@ -384,7 +399,7 @@ def main():
             if not os.path.exists(target_folder):
                 os.mkdir(target_folder)
 
-            fname = f'{target_folder}/{jkeys[0]}'
+            fname = f'{target_folder}/{jkey}'
             #print(fname)
             #json.dump(sorted(partitions, key=lambda x: x[0][0]), open(fname+'.json', 'w'))
             #sys.exit()
@@ -397,9 +412,16 @@ def main():
             #break
         #json.dump(all_partitions, open('all_partition.json', 'w'))
         #break
-    json.dump(all_partitions, open('all_partition.json', 'w'))
 
+    #all_partitions, partition_jkeys = cleanResult(subgraphs, all_partitions, partition_jkeys)
+
+    json.dump(all_partitions, open('all_partition.json', 'w'))
+    #pprint(partition_jkeys)
     
+    #timelines = 
+    #plot_timelines(timelines, names, outfile)
+
+
     '''
     #find overlaps in reference
     for j, p in enumerate(all_partitions):
