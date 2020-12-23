@@ -368,30 +368,26 @@ def main():
 
     for sub in subgraphs:
         chains = [] # json keys of chained alignments
+
+        sub_partitions = []
+
         for s in list(sub.values())[0]:
             #if len(s) > 1:
             if len(s) > 1:
                 jkey = track_tuple_to_json_id((s[0], s[1]))
-                #chains.append((len(s), s + list(sub.keys())))
                 chains.append(s + list(sub.keys()))
             else:
                 jkey = track_tuple_to_json_id((s[0], list(sub.keys())[0]))
-            #print(jkeys[0])
             dtw = jsons[jkey]['dtw']
             dtw = [[x[1], x[0]] for x in dtw] #swap columns to match order of file names/lengths
             tuning_diff = jsons[jkey]['tuning_diff']
-            #print(tuning_diff)
-            #file_names = jkeys[0].split('__')
             partitions = get_partition_bounds(dtw, jkey)
             
-            #all_partitions.append(fill_gaps(jkeys[0], partitions, jsons, lengths))
-            #2**(tuning_diff / 1200)
             partitions = fill_gaps(jkey, partitions, lengths, jsons[jkey]['tuning_diff'])
-            #print(partitions)
+
             all_partitions.append(partitions)
+
             partition_jkeys.append(jkey)
-            #with open('plots/'+jkeys[0]+'.txt', 'w') as sfile:
-            #    pprint(partitions, sfile)
 
             target_folder = os.path.join('plots', DATE)
             if not os.path.exists(target_folder):
@@ -413,12 +409,16 @@ def main():
 
     all_partitions, partition_jkeys = cleanResult(subgraphs, all_partitions, partition_jkeys)
 
-
     result = {}
     for key, value in zip(partition_jkeys, all_partitions):
         result[key] = value
 
+    result['unmatched'] = jsons['unmatched']
+
     json.dump(result, open('all_partition.json', 'w'))
+
+
+    #json.dump(result, open('all_partition.json', 'w'))
     #pprint(partition_jkeys)
     
     #timelines = 
